@@ -4,6 +4,12 @@
 
 This project demonstrates the setup and integration of an Active Directory domain with Splunk for centralized Windows event logging, alerting, and automated incident response using Shuffle.io SOAR. The goal is to build a security monitoring pipeline that detects suspicious logins, notifies analysts, and automates threat containment by disabling compromised user accounts.
 
+## 🧩 Workflow Diagram
+
+The following diagram outlines the automated detection and response workflow used in this Active Directory and Splunk integration project. It visualizes the end-to-end process—from detecting suspicious logins using Splunk, triggering alerts, sending notifications via Shuffle and Slack, to automatically disabling compromised accounts in Active Directory.![Active Directory Project Diagram_ drawio (4)](https://github.com/user-attachments/assets/53052d69-f713-4c15-a05f-f861eaad1eec)
+
+
+
 ## 📚 Skills Learned
 
 ### 🔐 Active Directory Setup and Management  
