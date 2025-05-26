@@ -50,96 +50,79 @@ Built mechanisms to verify that automated actions (e.g., disabling users) were s
 
 ---
 
-## Project Steps
+## Active Directory & Splunk Integration Project - Step-by-Step
 
-1. **Set up Domain Controller:**  
-   Logged into the VM `RIO-ADDC01` intended as the Active Directory Domain Controller.  
-   Added the **Active Directory Domain Services** role via "Add Roles and Features".  
-   Promoted the server to a domain controller, creating a new forest with the root domain `RIO.LOCAL`.  
-   Set the Directory Services Restore Mode (DSRM) password and completed the installation.  
-   Verified installation by opening **Active Directory Administrative Center**.
+1. **Initial Active Directory Setup**  
+   I logged into the VM I intended to use as the domain controller (**RIO-ADDC01**). I opened **Add Roles and Features**, added the **Active Directory Domain Services** role, and proceeded with the installation.
 
-2. **Create User in Active Directory:**  
-   Opened **Active Directory Users and Computers**.  
-   Navigated to the `Users` container and created a new user named **Thomas Shelby** with the logon name `T.Shelby`.
+2. **Domain Controller Configuration**  
+   After installation, I selected **Promote this server to a domain controller**, created a new forest with the root domain name **RIO.LOCAL**, entered a password, and completed the setup. Once Active Directory was installed, I confirmed the configuration by searching for and opening the **Active Directory Administrative Center**.
 
-3. **Join Test Machine to Domain:**  
-   On VM `RIO-TESTMACHINE`, accessed `This PC > Properties > Rename this PC (Advanced)`.  
-   Changed the machine to join the domain `RIO`.  
-   Entered admin credentials to authorize the change.  
-   Restarted the VM and confirmed the domain join by checking the login screen shows **Sign in to: RIO**.
+3. **Creating a New User**  
+   I opened **Active Directory Users and Computers**, navigated to the **Users** container, and created a new user named **Thomas Shelby** with the login name **T.Shelby**.
 
-4. **Install and Configure Splunk Enterprise on Ubuntu:**  
-   Downloaded and installed Splunk Enterprise on an Ubuntu VM.  
-   Launched Splunk and configured an initial username and password.  
-   Accessed the Splunk web interface.
+4. **Adding a Test Machine to the Domain**  
+   On my test VM (**RIO-TESTMACHINE**), I navigated to **This PC > Properties > Rename this PC (Advanced)** and added it to the **RIO** domain. I used administrator credentials to authenticate the change.
 
-5. **Extend Splunk for Windows Logs:**  
-   Installed the **Splunk Add-on for Microsoft Windows** from Splunkbase.  
-   Created a new index called `rio-ad`.  
-   Enabled Splunk to receive data by configuring a new receiving port on `9997`.
+5. **Domain Join Confirmation**  
+   After restarting the test machine, I verified the domain join by selecting **Other User** on the login screen. The prompt **Sign in to: RIO** confirmed successful domain integration.
 
-6. **Install Splunk Universal Forwarder on Domain Controller and Test Machine:**  
-   Installed the Universal Forwarder on both `RIO-ADDC01` and `RIO-TESTMACHINE`.  
-   Configured forwarding settings on both machines.
+6. **Splunk Setup on Ubuntu Machine**  
+   I downloaded **Splunk Enterprise** on my Ubuntu Linux machine, navigated to the Splunk binary, started the service, and set a username and password. I could now access the Splunk Web Interface.
 
-7. **Configure Forwarder Inputs:**  
-   Copied the `inputs.conf` from the default directory to the local directory on both machines.  
-   Edited `inputs.conf` (with administrative privileges) to include:
+7. **Installing the Splunk Add-on for Windows**  
+   From the Splunk interface, I selected **Browse More Apps**, located the **Splunk Add-on for Microsoft Windows**, and installed it.
 
+8. **Creating a New Index**  
+   I navigated to **Settings > Indexes** and created a new index named **rio-ad**.
 
-8. **Run Splunk Forwarder as Local System Account:**  
-Opened Windows Services on both machines.  
-Set the SplunkForwarder service to log on as the **Local System Account**.  
-Restarted the service.
+9. **Configuring Receiving Port**  
+   Under **Settings > Forwarding and Receiving**, I selected **Configure Receiving > New Receiving Port**, and set port **9997** for incoming data.
 
-9. **Verify Telemetry in Splunk:**  
-Confirmed that Splunk was receiving logs from both `RIO-ADDC01` and `RIO-TESTMACHINE` by checking the hosts in Splunk web.
+10. **Installing Splunk Universal Forwarder**  
+    I installed the **Splunk Universal Forwarder** on both **RIO-ADDC01** and **RIO-TESTMACHINE** and completed the initial setup.
 
-10. **Create Alert Query in Splunk:**  
- Wrote a search to detect successful logon events (EventCode=4624) with Logon types 7 or 10.  
- Filtered out events from approved IP ranges (e.g., starting with 125.*).
+11. **Configuring inputs.conf for Windows Event Logs**  
+    I copied the **inputs.conf** file from the default directory to the local directory in the Splunk Forwarder installation path. Using Notepad with administrative privileges, I added the following lines to the file on both machines:
 
-11. **Test Alert with External RDP Login:**  
- Connected to `RIO-TESTMACHINE` via RDP from a VPN-connected machine to generate suspicious telemetry.  
- Verified the alert triggered based on the query.
+    ```ini
+    [WinEventLog://Security]
+    index = rio-ad
+    disabled = false
+    ```
 
-12. **Save Alert and Configure Actions:**  
- Saved the search as an alert.  
- Verified the alert appeared in the triggered alerts list.
+12. **Setting Splunk Forwarder to Run as Local System Account**  
+    I opened the **Services** app with admin privileges, found **SplunkForwarder**, opened **Properties**, set it to log on as **Local System Account**, and restarted the service. This was done on both **RIO-ADDC01** and **RIO-TESTMACHINE**.
 
-13. **Create Shuffle.io Workflow:**  
- Created a new workflow on Shuffle.io.  
- Added a webhook trigger and copied the webhook URL.
+13. **Verifying Incoming Telemetry in Splunk**  
+    The Splunk web interface confirmed it was receiving telemetry data. Under the field **host**, I observed two values: **RIO-ADDC01** and **RIO-TESTMACHINE**.
 
-14. **Connect Splunk Alert to Shuffle Workflow:**  
- Edited the Splunk alert to include the webhook action.  
- Pasted the Shuffle webhook URL into the alert action.
+14. **Writing a Detection Search in Splunk**  
+    I wrote a search query to detect **EventCode=4624** (successful logons) with **Logon Type 7 or 10**, excluding IP addresses starting with **125.\***. I then initiated an RDP session to **RIO-TESTMACHINE** from another computer connected via VPN to generate telemetry and verify results.
 
-15. **Verify Webhook Reception:**  
- Confirmed Shuffle.io received the alerts triggered by Splunk.
+15. **Saving and Testing the Alert**  
+    I saved this query as an **Alert** and navigated to **Triggered Alerts** to confirm it was working.
 
-16. **Add Slack Notification to Workflow:**  
- Configured the Slack app in Shuffle to send alert notifications to a Slack channel.  
- Notifications included useful details like username and source IP.
+16. **Integrating with Shuffle.io**  
+    I created a new workflow on **Shuffle.io**, added a **Webhook** trigger, copied the webhook URL, returned to Splunk Alerts, and added a webhook action using the Shuffle URL.
 
-17. **Add User Input Trigger in Shuffle:**  
- Configured an email prompt asking the analyst whether to disable the suspicious user.
+17. **Verifying Webhook Functionality**  
+    I confirmed that the webhook was correctly receiving alerts from Splunk.
 
-18. **Integrate Active Directory Actions:**  
- Added the Active Directory app to:  
- - Disable the flagged user account upon approval.  
- - Query user attributes to confirm the disablement.  
- Added a repeater to re-check user status.
+18. **Slack Notification Setup**  
+    I configured the Slack app in the Shuffle workflow to send alert messages to a Slack channel named **Alerts**, containing key information such as the username and source IP address.
 
-19. **Send Final Slack Confirmation:**  
- Configured a Slack notification to confirm the user has been disabled in AD.
+19. **User Input for Account Action**  
+    I added a **User Input** trigger in Shuffle to send an email asking if the user account should be disabled.
 
-20. **Test Full Workflow:**  
- Triggered an alert using an attacker machine.  
- Verified Slack and email notifications.  
- Confirmed user **Thomas Shelby** was disabled (noted by the down-arrow icon in AD).  
- Confirmed final Slack message stating the user was disabled.
+20. **Automated User Disable via Active Directory**  
+    I added the Active Directory app in Shuffle, authenticated it with the domain, and configured it to disable the selected user. I also added an additional Active Directory action to get user attributes for verification, along with a Repeater app to continuously check until the account was confirmed disabled. Once verified, a final Slack notification (via another Slack app) was sent to confirm user deactivation.
+
+21. **End-to-End Workflow Test**  
+    Using an attacker machine, I generated a real alert via Splunk. The Shuffle workflow successfully triggered:  
+    - An analyst was notified via Slack and email.  
+    - The user account **Thomas Shelby** was disabled in Active Directory (verified by the down arrow next to the username).  
+    - A final Slack message confirmed the user had been disabled.
 
 ---
 
